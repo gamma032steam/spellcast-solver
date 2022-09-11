@@ -6,7 +6,7 @@ import re
 class GameBoard:
     '''Represents the state of a a game board'''
 
-    def __init__(self, image_path="letter.png"):
+    def __init__(self, image_path):
         '''Creates a game board based on a provided image'''
         image = cv2.imread(image_path)
         bounds = self.image_bounds(image)
@@ -16,7 +16,7 @@ class GameBoard:
             print(letter)
 
     def read_letter(self, image, bound, n):
-        '''Takes a bound and identifies the letter. Returns None if no letter is found.'''
+        '''Takes coordinate bounds and identifies the letter. Returns None if no letter is found'''
         lo_y, hi_y, lo_x, hi_x = bound
         cropped_image = image[lo_y:hi_y, lo_x:hi_x]
         # remove colour for special letters
@@ -51,7 +51,7 @@ class GameBoard:
         return squares
 
     def shave_bounds(self, pair):
-        '''Reduces the size of a pair by 20% to cut out gems and score'''
+        '''Reduces the width of a pair by 20% to cut out gems and score'''
         assert(pair[0] < pair[1])
         shave_amount = (pair[1] - pair[0]) // 5
         new_pair = (pair[0] + shave_amount, pair[1] - shave_amount)
