@@ -8,12 +8,16 @@ class GameBoard:
 
     def __init__(self, image_path):
         '''Creates a game board based on a provided image'''
-        image = cv2.imread(image_path)
-        bounds = self.image_bounds(image)
+        self.image = cv2.imread(image_path)
+        bounds = self.image_bounds(self.image)
         assert(len(bounds) == 25)
+        self.grid = [[]]
         for i, bound in enumerate(bounds):
-            letter = self.read_letter(image, bound, i+1)
-            print(letter)
+            if len(self.grid[-1]) == 5: self.grid.append([])
+            letter = self.read_letter(self.image, bound, i+1)
+            self.grid[-1].append(letter)
+
+        print(self.grid)
 
     def read_letter(self, image, bound, n):
         '''Takes coordinate bounds and identifies the letter. Returns None if no letter is found'''
@@ -34,7 +38,7 @@ class GameBoard:
         if not res: return None
         if not res[0].isalpha(): return None
         letter = res[0].upper()
-        if len(res) > 1: print(f'WARN: More than one letter detected. Guessing that {res} is {letter}.')
+        if len(res) > 1: print(f'WARN: More than one letter detected for letter {n}. Guessing that {res} is {letter}.')
         return letter
 
     def image_bounds(self, image):
