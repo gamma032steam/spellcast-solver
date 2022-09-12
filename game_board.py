@@ -1,5 +1,5 @@
+import os
 import pytesseract
-import numpy as np
 import cv2
 import re
 
@@ -21,6 +21,7 @@ class GameBoard:
         cropped_image = image[lo_y:hi_y, lo_x:hi_x]
         # remove colour for special letters
         grey_image = self.get_grayscale(cropped_image)
+        if not os.path.isdir('tmp'): os.mkdir('tmp')
         cv2.imwrite(f'tmp/debug-letter-{n}.png', grey_image)
 
         # run image through ocr
