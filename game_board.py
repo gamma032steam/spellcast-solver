@@ -1,23 +1,39 @@
-import os
 import pytesseract
+import numpy as np
 import cv2
 import re
+from letter import Letter
+
+BOARD_SIDE_LEN = 5
 
 class GameBoard:
-    '''Represents the state of a a game board'''
+    '''Represents the state of a game board'''
 
     def __init__(self, image_path):
         '''Creates a game board based on a provided image'''
-        self.image = cv2.imread(image_path)
-        bounds = self.image_bounds(self.image)
-        assert(len(bounds) == 25)
-        self.grid = [[]]
+        image = cv2.imread(image_path)
+        bounds = self.image_bounds(image)
+        assert(len(bounds) == BOARD_SIDE_LEN**2)
+        letters = [[] for _ in range(BOARD_SIDE_LEN)]
         for i, bound in enumerate(bounds):
-            if len(self.grid[-1]) == 5: self.grid.append([])
-            letter = self.read_letter(self.image, bound, i+1)
-            self.grid[-1].append(letter)
-
-        print(self.grid)
+            letter = self.read_letter(image, bound, i+1)
+            print(letter)
+            position = (i%BOARD_SIDE_LEN, i//BOARD_SIDE_LEN)
+            letters[i%BOARD_SIDE_LEN].append(Letter(letter, 0, 1, False, position))
+        self.graph = GameBoard.construct_graph_from_grid(letters)
+    
+    def construct_graph_from_grid(letters: list):
+        graph = {}
+        for i in range(BOARD_SIDE_LEN):
+            for j in range(BOARD_SIDE_LEN):
+                adjacents = []
+                for k in [-1, 0, 1]:
+                    for l in [-1, 0, 1]:
+                        x, y = i+k, j+l
+                        if x>0 and y>0 and x<BOARD_SIDE_LEN and y<BOARD_SIDE_LEN:
+                            adjacents.append(letters[x][y])
+                graph[letters[i][j]] = adjacents
+        return graph
 
     def read_letter(self, image, bound, n):
         '''Takes coordinate bounds and identifies the letter. Returns None if no letter is found'''
@@ -25,7 +41,6 @@ class GameBoard:
         cropped_image = image[lo_y:hi_y, lo_x:hi_x]
         # remove colour for special letters
         grey_image = self.get_grayscale(cropped_image)
-        if not os.path.isdir('tmp'): os.mkdir('tmp')
         cv2.imwrite(f'tmp/debug-letter-{n}.png', grey_image)
 
         # run image through ocr
@@ -37,8 +52,8 @@ class GameBoard:
         res = re.sub(r'(\W|0-9)+', '', res)
         if not res: return None
         if not res[0].isalpha(): return None
-        letter = res[0].upper()
-        if len(res) > 1: print(f'WARN: More than one letter detected for letter {n}. Guessing that {res} is {letter}.')
+        letter = res[0].lower()
+        if len(res) > 1: print(f'WARN: More than one letter detected. Guessing that {res} is {letter}.')
         return letter
 
     def image_bounds(self, image):
@@ -97,4 +112,4 @@ class GameBoard:
 
 
 if __name__ == '__main__':
-    GameBoard('sample_data/game.png')
+    board = GameBoard('sample_data/game.png')
