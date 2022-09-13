@@ -24,18 +24,15 @@ class GameBoard:
             letter = self.read_letter(self.image, bound, i+1)                
             self.grid[-1].append(letter)
 
-        print(self.grid)
-
     def __str__(self):
-        edge = "-"*(BOARD_SIDE_LEN*2+1)
-        print(self.grid)
+        edge = "-"*(BOARD_SIDE_LEN*2+1) + '\n'
         str = edge
         for row in self.grid:
-            str += "-"
+            str += "|"
             for letter in row:
                 str += '*' if letter is None else letter.upper()
-                str += '-'
-        str += edge
+                str += '|'
+            str += '\n' + edge
         return str
 
     def read_letter(self, image, bound, n):
