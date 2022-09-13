@@ -5,6 +5,7 @@ import re
 from letter import Letter
 
 BOARD_SIDE_LEN = 5
+NUM_SWAPS = 0
 
 # mapping to correct incorrect detections
 LETTER_SUBSTITUTIONS = {
@@ -17,17 +18,18 @@ class GameBoard:
     def __init__(self, image_path):
         '''Creates a game board based on a provided image'''
         self.image = cv2.imread(image_path)
-        bounds = self.image_bounds(self.image)
-        assert(len(bounds) == 25)
+        tile_bounds = self.tile_bounds(self.image)
+        letter_bounds = self.letter_bounds(tile_bounds)
+        assert(len(letter_bounds) == 25)
         self.grid = [[]]
-        for i, bound in enumerate(bounds):
+        for i, bound in enumerate(letter_bounds):
             if len(self.grid[-1]) == 5: self.grid.append([])
             letter = self.read_letter(self.image, bound, i+1)
             position = (i%BOARD_SIDE_LEN, i//BOARD_SIDE_LEN)                
             self.grid[-1].append(Letter(letter, 0, 1, False, position, False))
         self.graph = GameBoard.construct_graph_from_grid(self.grid)
         # TEMP, to be OCRed 
-        self.num_swaps = 2
+        self.num_swaps = NUM_SWAPS
     
     def construct_graph_from_grid(letters: list):
         graph = {}
@@ -86,19 +88,27 @@ class GameBoard:
 
         return letter
 
-    def image_bounds(self, image):
-        '''Finds the approximate region of the letters. Represents regions as the low
+    def tile_bounds(self, image):
+        '''Finds the approximate region of the tiles. Represents regions as the low
         and high y, then low and high x'''
         vertical_breakpoints = self.find_breakpoints(image, axis=0)
-        vertical_breakpoints = [self.shave_bounds(p) for p in vertical_breakpoints]
         horizontal_breakpoints = self.find_breakpoints(image, axis=1)
-        horizontal_breakpoints = [self.shave_bounds(p) for p in horizontal_breakpoints]
 
         squares = []
         for lo_y, hi_y in vertical_breakpoints:
             for lo_x, hi_x in horizontal_breakpoints:
                 squares.append((lo_y, hi_y, lo_x, hi_x))
         return squares
+
+    def letter_bounds(self, tile_bounds):
+        '''Finds the approximate region of the letters. Represents regions as the low
+        and high y, then low and high x'''
+        letter_bounds = []
+        for lo_y, hi_y, lo_x, hi_x in tile_bounds:
+            lo_x, hi_x = self.shave_bounds((lo_x, hi_x))
+            lo_x, hi_x = self.shave_bounds((lo_x, hi_x))
+            letter_bounds.append((lo_y, hi_y, lo_x, hi_x))
+        return letter_bounds
 
     def shave_bounds(self, pair):
         '''Reduces the width of a pair by 20% to cut out gems and score'''
