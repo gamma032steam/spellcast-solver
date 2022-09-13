@@ -1,3 +1,4 @@
+import math
 import os
 import pytesseract
 import cv2
@@ -11,6 +12,8 @@ Bound = namedtuple("Bound", "lo_y hi_y lo_x hi_x")
 
 BOARD_SIDE_LEN = 5
 NUM_SWAPS = 0
+LETTER_HOZ_TRIM_PERCENT = 0.22
+LETTER_VERT_TRIM_PERCENT = 0.10
 
 # mapping to correct incorrect detections
 LETTER_SUBSTITUTIONS = {
@@ -113,15 +116,15 @@ class GameBoard:
         and high y, then low and high x'''
         letter_bounds = []
         for lo_y, hi_y, lo_x, hi_x in tile_bounds:
-            lo_x, hi_x = self.shave_bounds((lo_x, hi_x))
-            lo_y, hi_y = self.shave_bounds((lo_y, hi_y))
+            lo_x, hi_x = self.shave_bounds((lo_x, hi_x), LETTER_HOZ_TRIM_PERCENT)
+            lo_y, hi_y = self.shave_bounds((lo_y, hi_y), LETTER_VERT_TRIM_PERCENT)
             letter_bounds.append(Bound(lo_y, hi_y, lo_x, hi_x))
         return letter_bounds
 
-    def shave_bounds(self, pair):
+    def shave_bounds(self, pair, percent):
         '''Reduces the width of a pair by 20% to cut out gems and score'''
         assert(pair[0] < pair[1])
-        shave_amount = (pair[1] - pair[0]) // 5
+        shave_amount = math.floor((pair[1] - pair[0]) * percent)
         new_pair = (pair[0] + shave_amount, pair[1] - shave_amount)
         assert(new_pair[0] < new_pair[1])
         return new_pair
