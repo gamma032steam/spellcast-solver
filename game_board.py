@@ -2,6 +2,7 @@ import os
 import pytesseract
 import cv2
 import re
+from letter import Letter
 
 BOARD_SIDE_LEN = 5
 
@@ -21,8 +22,23 @@ class GameBoard:
         self.grid = [[]]
         for i, bound in enumerate(bounds):
             if len(self.grid[-1]) == 5: self.grid.append([])
-            letter = self.read_letter(self.image, bound, i+1)                
-            self.grid[-1].append(letter)
+            letter = self.read_letter(self.image, bound, i+1)
+            position = (i%BOARD_SIDE_LEN, i//BOARD_SIDE_LEN)                
+            self.grid[-1].append(Letter(letter, 0, 1, False, position))
+        self.graph = GameBoard.construct_graph_from_grid(self.grid)
+    
+    def construct_graph_from_grid(letters: list):
+        graph = {}
+        for i in range(BOARD_SIDE_LEN):
+            for j in range(BOARD_SIDE_LEN):
+                adjacents = []
+                for k in [-1, 0, 1]:
+                    for l in [-1, 0, 1]:
+                        x, y = i+k, j+l
+                        if x>0 and y>0 and x<BOARD_SIDE_LEN and y<BOARD_SIDE_LEN:
+                            adjacents.append(letters[x][y])
+                graph[letters[i][j]] = adjacents
+        return graph
 
     def __str__(self):
         edge = "-"*(BOARD_SIDE_LEN*2+1) + '\n'
@@ -30,7 +46,7 @@ class GameBoard:
         for row in self.grid:
             str += "|"
             for letter in row:
-                str += '*' if letter is None else letter.upper()
+                str += '*' if letter is None else letter.char.upper()
                 str += '|'
             str += '\n' + edge
         return str

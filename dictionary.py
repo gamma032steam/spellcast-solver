@@ -26,4 +26,5 @@ def is_all_alpha(word):
     return all([l.isalpha() for l in word])
 
 if __name__ == "__main__":
-    print(len(build_dictionary()))
+    dic = build_dictionary()
+    print(len(dic))
