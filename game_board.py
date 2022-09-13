@@ -7,7 +7,7 @@ BOARD_SIDE_LEN = 5
 
 # mapping to correct incorrect detections
 LETTER_SUBSTITUTIONS = {
-    '0': 'O'
+    '0': 'o'
 }
 
 class GameBoard:
