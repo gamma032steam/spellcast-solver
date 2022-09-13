@@ -3,6 +3,8 @@ import pytesseract
 import cv2
 import re
 from letter import Letter
+from multiprocessing import Pool
+from itertools import repeat
 
 BOARD_SIDE_LEN = 5
 
@@ -10,6 +12,8 @@ BOARD_SIDE_LEN = 5
 LETTER_SUBSTITUTIONS = {
     '0': 'o'
 }
+
+NUM_PROCS = 4
 
 class GameBoard:
     '''Represents the state of a a game board'''
@@ -19,10 +23,13 @@ class GameBoard:
         self.image = cv2.imread(image_path)
         bounds = self.image_bounds(self.image)
         assert(len(bounds) == 25)
+        letters = []
+        with Pool(processes=NUM_PROCS) as pool:
+            letters = pool.starmap(self.read_letter, zip(repeat(self.image), bounds, range(len(bounds))))
+        print(letters)
         self.grid = [[]]
-        for i, bound in enumerate(bounds):
+        for i, letter in enumerate(letters):
             if len(self.grid[-1]) == 5: self.grid.append([])
-            letter = self.read_letter(self.image, bound, i+1)
             position = (i%BOARD_SIDE_LEN, i//BOARD_SIDE_LEN)                
             self.grid[-1].append(Letter(letter, 0, 1, False, position, False))
         self.graph = GameBoard.construct_graph_from_grid(self.grid)
