@@ -114,7 +114,7 @@ class GameBoard:
         letter_bounds = []
         for lo_y, hi_y, lo_x, hi_x in tile_bounds:
             lo_x, hi_x = self.shave_bounds((lo_x, hi_x))
-            lo_x, hi_x = self.shave_bounds((lo_x, hi_x))
+            lo_y, hi_y = self.shave_bounds((lo_y, hi_y))
             letter_bounds.append(Bound(lo_y, hi_y, lo_x, hi_x))
         return letter_bounds
 
