@@ -26,6 +26,8 @@ class GameBoard:
             position = (i%BOARD_SIDE_LEN, i//BOARD_SIDE_LEN)                
             self.grid[-1].append(Letter(letter, 0, 1, False, position))
         self.graph = GameBoard.construct_graph_from_grid(self.grid)
+        # TEMP, to be OCRed 
+        self.num_swaps = 2
     
     def construct_graph_from_grid(letters: list):
         graph = {}

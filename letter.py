@@ -4,6 +4,7 @@ class Letter:
 
     def __init__(self, char: str, diamonds: int, multiplier: int, does_double_word: bool, position: tuple):
         self.char = char
+        assert(char in Letter.char_to_points)
         self.points = Letter.char_to_points[char]*multiplier
         self.diamonds = diamonds
         self.does_double_word = does_double_word

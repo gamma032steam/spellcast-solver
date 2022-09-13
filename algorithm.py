@@ -1,33 +1,33 @@
 from game_board import GameBoard
 from letter import Letter
 
+TOP_N = 5
+
 def find_best_word(trie: dict, board) -> tuple:
     best_word, best_score = "", 0
     trie = trie[""]
+    scored_words = []
     for letter in board.graph:
-        if letter.char in trie and letter.char == 'r':
-            word, score = find_best_word_r(trie[letter.char], letter, [], board)
-            if score > best_score:
-                best_word, best_score = word, score
-    return best_word, best_score
+        scored_words += find_best_word_r(trie[letter.char], letter, [], board)
+    return sorted(scored_words, key=lambda x: x[1])[-TOP_N:]
 
 # Modifying in place where I can to avoid overhead of memory allocation
 # I've personally observed benefits in doing this in a minimax implementation in python
-def find_best_word_r(trie: dict, curr_letter: Letter, used_letters: list, board) -> tuple:
+def find_best_word_r(trie: dict, curr_letter: Letter, used_letters: list, board) -> list:
     curr_letter.used_up = True
-    best_word, best_score = "", 0
+    scored_words = []
+    # New list to avoid modifying arg in place
     new_used_letters = used_letters + [curr_letter]
     for i, letter in enumerate(board.graph[curr_letter]):
         if not letter.used_up and letter.char in trie:
             board.graph[curr_letter][i] = None
-            word, score = find_best_word_r(trie[letter.char], letter, new_used_letters, board)
-            if score > best_score:
-                best_word, best_score = word, score
+            scored_words += find_best_word_r(trie[letter.char], letter, new_used_letters, board)
             board.graph[curr_letter][i] = letter
     curr_letter.used_up = False
-    if best_score == 0 and "" in trie:
-        return "".join([l.char for l in new_used_letters]), score_letters(new_used_letters)
-    return best_word, best_score
+    if "" in trie:
+        word = "".join([l.char for l in new_used_letters]), score_letters(new_used_letters)
+        scored_words.append((word, score_letters(new_used_letters)))
+    return scored_words
 
 def score_letters(used_letters: list):
     has_double_word = sum([letter.does_double_word for letter in used_letters]) > 0
@@ -49,5 +49,5 @@ if __name__ == "__main__":
     print(board)
 
     from algorithm import find_best_word
-    best_word, best_score = find_best_word(trie_dic, board)
-    print(best_word, best_score)
+    best_scored_words = find_best_word(trie_dic, board)
+    print(best_scored_words)
