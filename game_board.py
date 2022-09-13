@@ -3,6 +3,13 @@ import pytesseract
 import cv2
 import re
 
+BOARD_SIDE_LEN = 5
+
+# mapping to correct incorrect detections
+LETTER_SUBSTITUTIONS = {
+    '0': 'O'
+}
+
 class GameBoard:
     '''Represents the state of a a game board'''
 
@@ -14,10 +21,22 @@ class GameBoard:
         self.grid = [[]]
         for i, bound in enumerate(bounds):
             if len(self.grid[-1]) == 5: self.grid.append([])
-            letter = self.read_letter(self.image, bound, i+1)
+            letter = self.read_letter(self.image, bound, i+1)                
             self.grid[-1].append(letter)
 
         print(self.grid)
+
+    def __str__(self):
+        edge = "-"*(BOARD_SIDE_LEN*2+1)
+        print(self.grid)
+        str = edge
+        for row in self.grid:
+            str += "-"
+            for letter in row:
+                str += '*' if letter is None else letter.upper()
+                str += '-'
+        str += edge
+        return str
 
     def read_letter(self, image, bound, n):
         '''Takes coordinate bounds and identifies the letter. Returns None if no letter is found'''
@@ -32,13 +51,24 @@ class GameBoard:
         config = r'--oem 3 --psm 10'
         res = pytesseract.image_to_string(grey_image, config=config)
 
-        # we occasionally get double letters, one uppercase and one lower case.
-        # just take the first letter, capitalised
-        res = re.sub(r'(\W|0-9)+', '', res)
-        if not res: return None
-        if not res[0].isalpha(): return None
-        letter = res[0].upper()
-        if len(res) > 1: print(f'WARN: More than one letter detected for letter {n}. Guessing that {res} is {letter}.')
+        res = re.sub(r'\W+', '', res)
+        if not res: 
+            print(f"WARN: Failed to detect letter {n}: no characters detected. Skipping.") 
+            return None
+
+        letter = res[0].lower()
+        if len(res) > 1: 
+            # we occasionally get double letters, one uppercase and one lower case.
+            # just take the first letter, capitalised
+            print(f"WARN: More than one letter detected for letter {n}. Guessing that '{res}'' is '{letter}'.")
+
+        if letter in LETTER_SUBSTITUTIONS:
+            print(f"WARN: Detected invalid character '{letter}' for letter {n}. Replacing with '{LETTER_SUBSTITUTIONS[letter]}'.") 
+            letter = LETTER_SUBSTITUTIONS[letter]
+        elif not res[0].isalpha(): 
+            print(f"WARN: First character of letter {n} detected as non-alpha char '{res[0]}'. Skipping.") 
+            return None
+
         return letter
 
     def image_bounds(self, image):
@@ -97,4 +127,5 @@ class GameBoard:
 
 
 if __name__ == '__main__':
-    GameBoard('sample_data/game.png')
+    board = GameBoard('sample_data/game.png')
+    print(board)
