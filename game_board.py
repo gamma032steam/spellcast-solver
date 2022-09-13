@@ -24,7 +24,7 @@ class GameBoard:
             if len(self.grid[-1]) == 5: self.grid.append([])
             letter = self.read_letter(self.image, bound, i+1)
             position = (i%BOARD_SIDE_LEN, i//BOARD_SIDE_LEN)                
-            self.grid[-1].append(Letter(letter, 0, 1, False, position))
+            self.grid[-1].append(Letter(letter, 0, 1, False, position, False))
         self.graph = GameBoard.construct_graph_from_grid(self.grid)
         # TEMP, to be OCRed 
         self.num_swaps = 2

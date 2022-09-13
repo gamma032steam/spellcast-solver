@@ -2,10 +2,13 @@ class Letter:
     '''Represents a letter on the game board'''
     char_to_points = {'a':1,'c':5,'d':3,'e':1,'g':3,'i':1,'k':6,'l':3,'n':2,'o':1,'p':4,'r':2,'s':2,'t':2,'x':7,'y':4,'z':8}
 
-    def __init__(self, char: str, diamonds: int, multiplier: int, does_double_word: bool, position: tuple):
+    def __init__(self, char: str, diamonds: int, multiplier: int, does_double_word: bool, position: tuple, swapped_letter: bool):
         self.char = char
-        assert(char in Letter.char_to_points)
-        self.points = Letter.char_to_points[char]*multiplier
+        if swapped_letter:
+            self.points = 0
+        else:
+            assert(char in Letter.char_to_points)
+            self.points = Letter.char_to_points[char]*multiplier
         self.diamonds = diamonds
         self.does_double_word = does_double_word
         self.position = position

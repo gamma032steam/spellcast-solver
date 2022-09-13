@@ -8,25 +8,31 @@ def find_best_word(trie: dict, board) -> tuple:
     trie = trie[""]
     scored_words = []
     for letter in board.graph:
-        scored_words += find_best_word_r(trie[letter.char], letter, [], board)
+        scored_words += find_best_word_r(trie[letter.char], letter, [letter], board)
     return sorted(scored_words, key=lambda x: x[1])[-TOP_N:]
 
+AZ = [chr(x) for x in range(ord('a'), ord('a')+26)]
 # Modifying in place where I can to avoid overhead of memory allocation
 # I've personally observed benefits in doing this in a minimax implementation in python
 def find_best_word_r(trie: dict, curr_letter: Letter, used_letters: list, board) -> list:
     curr_letter.used_up = True
     scored_words = []
-    # New list to avoid modifying arg in place
-    new_used_letters = used_letters + [curr_letter]
     for i, letter in enumerate(board.graph[curr_letter]):
-        if not letter.used_up and letter.char in trie:
-            board.graph[curr_letter][i] = None
-            scored_words += find_best_word_r(trie[letter.char], letter, new_used_letters, board)
-            board.graph[curr_letter][i] = letter
+        if not letter.used_up:
+            if board.num_swaps>0:
+                board.num_swaps -= 1
+                for char in AZ:
+                    if char in trie:
+                        swapped_letter = Letter(char, 0, 1, False, None, True)
+                        scored_words += find_best_word_r(trie[char], letter, used_letters+[swapped_letter], board)
+                board.num_swaps += 1
+                
+            if letter.char in trie:
+                scored_words += find_best_word_r(trie[letter.char], letter, used_letters+[letter], board)
     curr_letter.used_up = False
     if "" in trie:
-        word = "".join([l.char for l in new_used_letters]), score_letters(new_used_letters)
-        scored_words.append((word, score_letters(new_used_letters)))
+        scored_word = "".join([l.char for l in used_letters]), score_letters(used_letters)
+        scored_words.append(scored_word)
     return scored_words
 
 def score_letters(used_letters: list):
