@@ -5,7 +5,9 @@ Identifies best moves for the SpellCast Discord game. Reads the game state via O
 ## The game
 The goal is to connect letters to make words. You can connect letters horizontally, vertically and diagonally. Each letter used awards points.
 
-![sample game](./sample_data/game.png)
+Input image             |  Output image
+:-------------------------:|:-------------------------:
+![](sample_data/game.png)  |  ![](sample_data/sample_solution.png)
 
 ## Setup
 
