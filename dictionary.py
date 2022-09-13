@@ -9,12 +9,11 @@ def build_dictionary():
     package used by SpellCast, with profanities filtered.'''
     profanities = get_profanity_set()
     word_list = []
-    curr_level_index = 0
-    while curr_level_index < len(levels) and levels[curr_level_index] <= DICTIONARY_LEVEL:
+    for level in levels:
+        if level > DICTIONARY_LEVEL: break
         for lang in LANGUAGES + ["english"]:
-            with open(f'dictionary/{lang}-words.{str(levels[curr_level_index])}') as f:
+            with open(f'dictionary/{lang}-words.{str(level)}') as f:
                 word_list += [word for word in f.read().splitlines() if is_all_alpha(word) and word not in profanities]
-        curr_level_index += 1
     return word_list
 
 def get_profanity_set():
