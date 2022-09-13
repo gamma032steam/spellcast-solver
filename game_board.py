@@ -5,6 +5,9 @@ import re
 from letter import Letter
 from multiprocessing import Pool
 from itertools import repeat
+from collections import namedtuple
+
+Bound = namedtuple("Bound", "lo_y hi_y lo_x hi_x")
 
 BOARD_SIDE_LEN = 5
 NUM_SWAPS = 0
@@ -17,20 +20,18 @@ LETTER_SUBSTITUTIONS = {
 NUM_PROCS = 4
 
 class GameBoard:
-    '''Represents the state of a a game board'''
+    '''Represents the state of a game board'''
 
     def __init__(self, image_path):
         '''Creates a game board based on a provided image'''
         self.image = cv2.imread(image_path)
-        tile_bounds = self.tile_bounds(self.image)
-        letter_bounds = self.letter_bounds(tile_bounds)
+        self.tile_bounds = self.find_tile_bounds(self.image)
+        letter_bounds = self.find_letter_bounds(self.tile_bounds)
         self.grid = [[]]
         assert(len(letter_bounds) == 25)
         letters = []
         with Pool(processes=NUM_PROCS) as pool:
             letters = pool.starmap(self.read_letter, zip(repeat(self.image), letter_bounds, range(len(letter_bounds))))
-        print(letters)
-        self.grid = [[]]
         for i, letter in enumerate(letters):
             if len(self.grid[-1]) == 5: self.grid.append([])
             position = (i%BOARD_SIDE_LEN, i//BOARD_SIDE_LEN)                
@@ -65,8 +66,7 @@ class GameBoard:
 
     def read_letter(self, image, bound, n):
         '''Takes coordinate bounds and identifies the letter. Returns None if no letter is found'''
-        lo_y, hi_y, lo_x, hi_x = bound
-        cropped_image = image[lo_y:hi_y, lo_x:hi_x]
+        cropped_image = image[bound.lo_y:bound.hi_y, bound.lo_x:bound.hi_x]
         # remove colour for special letters
         grey_image = self.get_grayscale(cropped_image)
         if not os.path.isdir('tmp'): os.mkdir('tmp')
@@ -96,7 +96,7 @@ class GameBoard:
 
         return letter
 
-    def tile_bounds(self, image):
+    def find_tile_bounds(self, image):
         '''Finds the approximate region of the tiles. Represents regions as the low
         and high y, then low and high x'''
         vertical_breakpoints = self.find_breakpoints(image, axis=0)
@@ -105,17 +105,17 @@ class GameBoard:
         squares = []
         for lo_y, hi_y in vertical_breakpoints:
             for lo_x, hi_x in horizontal_breakpoints:
-                squares.append((lo_y, hi_y, lo_x, hi_x))
+                squares.append(Bound(lo_y, hi_y, lo_x, hi_x))
         return squares
 
-    def letter_bounds(self, tile_bounds):
+    def find_letter_bounds(self, tile_bounds):
         '''Finds the approximate region of the letters. Represents regions as the low
         and high y, then low and high x'''
         letter_bounds = []
         for lo_y, hi_y, lo_x, hi_x in tile_bounds:
             lo_x, hi_x = self.shave_bounds((lo_x, hi_x))
             lo_x, hi_x = self.shave_bounds((lo_x, hi_x))
-            letter_bounds.append((lo_y, hi_y, lo_x, hi_x))
+            letter_bounds.append(Bound(lo_y, hi_y, lo_x, hi_x))
         return letter_bounds
 
     def shave_bounds(self, pair):
