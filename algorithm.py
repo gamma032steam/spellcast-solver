@@ -9,7 +9,7 @@ def find_best_word(trie: dict, board) -> tuple:
     scored_words = []
     for letter in board.graph:
         scored_words += find_best_word_r(trie[letter.char], letter, [letter], board)
-    return sorted(scored_words, key=lambda x: x[1])[-TOP_N:]
+    return sorted(list(set(scored_words)), key=lambda x: x[1])[-TOP_N:]
 
 AZ = [chr(x) for x in range(ord('a'), ord('a')+26)]
 # Modifying in place where I can to avoid overhead of memory allocation
