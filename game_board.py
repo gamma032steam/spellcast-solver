@@ -7,6 +7,8 @@ from letter import Letter
 from multiprocessing import Pool
 from itertools import repeat
 from collections import namedtuple
+import numpy as np
+import easyocr
 
 Bound = namedtuple("Bound", "lo_y hi_y lo_x hi_x")
 
@@ -16,11 +18,9 @@ LETTER_HOZ_TRIM_PERCENT = 0.22
 LETTER_VERT_TRIM_PERCENT = 0.10
 
 # mapping to correct incorrect detections
-LETTER_SUBSTITUTIONS = {
-    '0': 'o'
-}
+LETTER_SUBSTITUTIONS = {'0': 'o', '': 'i', '2':'z', '5':'s'}
 
-NUM_PROCS = 4
+NUM_PROCS = 8
 
 class GameBoard:
     '''Represents the state of a game board'''
@@ -29,19 +29,33 @@ class GameBoard:
         '''Creates a game board based on a provided image'''
         self.image = cv2.imread(image_path)
         self.tile_bounds = self.find_tile_bounds(self.image)
+        # self.reader = easyocr.Reader(['en'])
         letter_bounds = self.find_letter_bounds(self.tile_bounds)
         self.grid = [[]]
+        self.letter_bitmasks, self.multiplier_bitmasks = GameBoard.read_in_bitmasks()
         assert(len(letter_bounds) == 25)
         letters = []
         with Pool(processes=NUM_PROCS) as pool:
             letters = pool.starmap(self.read_letter, zip(repeat(self.image), letter_bounds, range(len(letter_bounds))))
         for i, letter in enumerate(letters):
             if len(self.grid[-1]) == 5: self.grid.append([])
-            position = (i%BOARD_SIDE_LEN, i//BOARD_SIDE_LEN)                
-            self.grid[-1].append(Letter(letter, 0, 1, False, position, False))
+            self.grid[-1].append(letter)
         self.graph = GameBoard.construct_graph_from_grid(self.grid)
-        # TEMP, to be OCRed 
         self.num_swaps = NUM_SWAPS
+    
+    def read_in_bitmasks():
+        letter_bitmasks = {}
+        multiplier_bitmasks = {}
+        for file_name in os.listdir("bitmasks"):
+            im = cv2.imread(f'bitmasks/{file_name}')
+            # drop the color dimension
+            im = im[:,:,0]
+            file_name = file_name.replace(".png","")
+            if len(file_name)>1:
+                multiplier_bitmasks[file_name] = im
+            else:
+                letter_bitmasks[file_name] = im
+        return (letter_bitmasks, multiplier_bitmasks)
     
     def construct_graph_from_grid(letters: list):
         graph = {}
@@ -66,18 +80,59 @@ class GameBoard:
                 str += '|'
             str += '\n' + edge
         return str
+    
+    def read_text_w_bitmasks(text_image, bitmasks):
+        '''Return None or empty string if nothing is found'''
+        # run image through bitmask
+        matches = []
+        for char, mask in bitmasks.items():
+            # Size of the mask must be bigger than the size of the image, otherwise sliding window
+            # is impossible.
+            if mask.shape > text_image.shape:
+                continue
+            window_view = np.lib.stride_tricks.sliding_window_view(text_image, mask.shape)
+            # Get the absolute difference in brightness levels
+            abs_diffs = np.abs(window_view - mask)
+            # Sum across each place that the window was placed on the image
+            summed_diffs = np.sum(abs_diffs, axis=(2,3))
+            # Find the lowest diff in any window
+            min_diff = np.min(summed_diffs)
+            matches.append((char, min_diff))
+        
+        def debug_print_arr(arr):
+            val = ""
+            for row in arr:
+                val += "".join(["." if x < 10 else "#" for x in row]) + "\n"
+            return val
+        pdb.set_trace()
+        return sorted(matches, key=lambda x: x[1])[0][0].lower()
+    
+    # Doesn't work with multiprocessing
+    def read_text_w_easy_ocr(text_image, reader, n):
+        res = reader.readtext(text_image)
+        if not res:
+            res = [(None, '', None)]
+        
+        # res is a tuple of bounds, char, and confidence
+        # here we remove the bounds from the tuple
+        res = [(x[1], x[2]) for x in res]
+        
+        letter = res[0][0].lower()
+        if len(res) > 1: 
+            # we occasionally get double letters, one uppercase and one lower case.
+            # just take the first letter, capitalised
+            print(f"WARN: More than one letter detected for letter {n}. Guessing that '{res}'' is '{letter}'.")
 
-    def read_letter(self, image, bound, n):
-        '''Takes coordinate bounds and identifies the letter. Returns None if no letter is found'''
-        cropped_image = image[bound.lo_y:bound.hi_y, bound.lo_x:bound.hi_x]
-        # remove colour for special letters
-        grey_image = self.get_grayscale(cropped_image)
-        if not os.path.isdir('tmp'): os.mkdir('tmp')
-        cv2.imwrite(f'tmp/debug-letter-{n}.png', grey_image)
-
+        if letter in LETTER_SUBSTITUTIONS:
+            print(f"WARN: Detected invalid character '{letter}' for letter {n}. Replacing with '{LETTER_SUBSTITUTIONS[letter]}'.") 
+            letter = LETTER_SUBSTITUTIONS[letter]
+        
+        return letter
+    
+    def read_text_w_tesseract(text_image, n):
         # run image through ocr
         config = r'--oem 3 --psm 10'
-        res = pytesseract.image_to_string(grey_image, config=config)
+        res = pytesseract.image_to_string(text_image, config=config)
 
         res = re.sub(r'\W+', '', res)
         if not res: 
@@ -98,6 +153,46 @@ class GameBoard:
             return None
 
         return letter
+
+    def read_tile(self, image, bound, n):
+        '''Takes coordinate bounds and identifies the letter and the multipler if any.'''
+        # crop image
+        cropped_image = image[bound.lo_y:bound.hi_y, bound.lo_x:bound.hi_x]
+        # remove colour
+        grey_image = self.get_grayscale(cropped_image)
+        # save image for debugging
+        if not os.path.isdir('tmp'): os.mkdir('tmp')
+        cv2.imwrite(f'tmp/debug-letter-{n}.png', grey_image)
+        # read text
+        letter = GameBoard.read_text_w_tesseract(grey_image, n)
+        
+        # crop image with modified bounds, original bounds identified the letter.
+        # modified bounds will identify the multipler
+        y_len = bound.hi_y - bound.lo_y
+        x_len = bound.hi_x - bound.lo_x
+        cropped_image = image[bound.lo_y - int(y_len*0.35):bound.hi_y- int(y_len*1.05), bound.lo_x- int(x_len*0.8):bound.hi_x- int(x_len*1.1)]
+        # remove colour
+        grey_image = self.get_grayscale(cropped_image)
+        # save image for debugging
+        if not os.path.isdir('tmp'): os.mkdir('tmp')
+        cv2.imwrite(f'tmp/debug-multiplier-{n}.png', grey_image)
+        # read text
+        multiplier_text = GameBoard.read_text_w_tesseract(grey_image, n)
+        
+        position = (n%BOARD_SIDE_LEN, n//BOARD_SIDE_LEN)
+        does_double_word = False
+        multiplier = 1
+        if multiplier_text == "dw":
+            does_double_word = True
+        elif multiplier_text == "dl":
+            multiplier = 2
+        elif multiplier_text == "tl":
+            multiplier = 3
+        elif multiplier_text == "":
+            pass
+        else:
+            print(f"WARN: Detected invalid multiplier text: {multiplier_text}.") 
+        return Letter(letter, 0, multiplier, does_double_word, position, False)
 
     def find_tile_bounds(self, image):
         '''Finds the approximate region of the tiles. Represents regions as the low

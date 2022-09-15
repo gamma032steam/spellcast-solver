@@ -8,8 +8,11 @@ class Letter:
         if swapped_letter:
             self.points = 0
         else:
-            assert(char in Letter.char_to_points)
-            self.points = Letter.char_to_points[char]*multiplier
+            if char not in Letter.char_to_points:
+                print(f"WARN: {char} is not in the mapping from character to points.")
+                self.points = 0
+            else:
+                self.points = Letter.char_to_points[char]*multiplier
         self.diamonds = diamonds
         self.does_double_word = does_double_word
         self.position = position
