@@ -5,6 +5,7 @@ class Letter:
 
     def __init__(self, char: str, has_diamond: bool, multiplier: int, does_double_word: bool, position: tuple, swapped_letter: bool):
         self.char = char
+        self.swapped_letter = swapped_letter
         if swapped_letter:
             self.points = 0
         else:
@@ -22,10 +23,10 @@ class Letter:
     
     # Hash and Eq only depend on the position of the letter
     def __hash__(self):
-        return hash(self.position)
+        return hash(self.position) + hash(self.swapped_letter)
     def __eq__(self, other):
         if not isinstance(other, type(self)): return NotImplemented
-        return self.position == other.position
+        return self.position == other.position and self.swapped_letter == other.swapped_letter
     
     def __str__(self):
         return self.char

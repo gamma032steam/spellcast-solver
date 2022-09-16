@@ -13,7 +13,6 @@ import easyocr
 Bound = namedtuple("Bound", "lo_y hi_y lo_x hi_x")
 
 BOARD_SIDE_LEN = 5
-NUM_SWAPS = 0
 LETTER_HOZ_TRIM_PERCENT = 0.22
 LETTER_VERT_TRIM_PERCENT = 0.10
 
@@ -42,7 +41,10 @@ class GameBoard:
             if len(self.grid[-1]) == 5: self.grid.append([])
             self.grid[-1].append(letter)
         self.graph = GameBoard.construct_graph_from_grid(self.grid)
-        self.num_swaps = NUM_SWAPS
+        self.num_swaps = int(input("How many swaps can you perform: "))
+    
+    def get_position(i):
+        return (i%BOARD_SIDE_LEN, i//BOARD_SIDE_LEN)
     
     def read_letters_manually():
         print("All inputs should be read from the board going left to right, top to bottom.")
@@ -51,8 +53,7 @@ class GameBoard:
         all_letters = all_letters.lower()
         Letters = []
         for i, letter in enumerate(all_letters):
-            position = (i%BOARD_SIDE_LEN, i//BOARD_SIDE_LEN)
-            Letters.append(Letter(letter, 0, 1, False, position, False))
+            Letters.append(Letter(letter, 0, 1, False, GameBoard.get_position(i), False))
         all_diamonds = input("y if a diamond is present, n otherwise for all 25 tiles on the board: ")
         all_diamonds = [True if "y" else False for char in all_diamonds]
         for letter, has_diamond in zip(Letters, all_diamonds):
@@ -286,6 +287,15 @@ class GameBoard:
     def get_grayscale(self, image):
         return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
+# The text below can be used for manual input
+'''
+uuifioplgzreiilotdioaqyio
+yyynnnynnnynynynnnynnnyyn
+4 0
+3 4
+
+2
+'''
 
 if __name__ == '__main__':
     board = GameBoard('sample_data/game.png')
