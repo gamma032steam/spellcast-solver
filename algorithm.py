@@ -42,7 +42,7 @@ def score_letters(used_letters: list):
     multiplier = 2 if has_double_word else 1
     score = 0
     for letter in used_letters:
-        score += letter.points + letter.diamonds
+        score += letter.points + letter.has_diamond
     return score*multiplier
 
 if __name__ == "__main__":

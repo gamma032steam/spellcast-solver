@@ -34,14 +34,44 @@ class GameBoard:
         self.grid = [[]]
         self.letter_bitmasks, self.multiplier_bitmasks = GameBoard.read_in_bitmasks()
         assert(len(letter_bounds) == 25)
-        letters = []
-        with Pool(processes=NUM_PROCS) as pool:
-            letters = pool.starmap(self.read_letter, zip(repeat(self.image), letter_bounds, range(len(letter_bounds))))
+        #letters = []
+        #with Pool(processes=NUM_PROCS) as pool:
+        #    letters = pool.starmap(self.read_letter, zip(repeat(self.image), letter_bounds, range(len(letter_bounds))))
+        letters = GameBoard.read_letters_manually()
         for i, letter in enumerate(letters):
             if len(self.grid[-1]) == 5: self.grid.append([])
             self.grid[-1].append(letter)
         self.graph = GameBoard.construct_graph_from_grid(self.grid)
         self.num_swaps = NUM_SWAPS
+    
+    def read_letters_manually():
+        print("All inputs should be read from the board going left to right, top to bottom.")
+        print("Inputs, should have no separator (spaces, commas, etc)")
+        all_letters = input("Enter all 25 letters on the board: ")
+        all_letters = all_letters.lower()
+        Letters = []
+        for i, letter in enumerate(all_letters):
+            position = (i%BOARD_SIDE_LEN, i//BOARD_SIDE_LEN)
+            Letters.append(Letter(letter, 0, 1, False, position, False))
+        all_diamonds = input("y if a diamond is present, n otherwise for all 25 tiles on the board: ")
+        all_diamonds = [True if "y" else False for char in all_diamonds]
+        for letter, has_diamond in zip(Letters, all_diamonds):
+            letter.has_diamond = has_diamond
+        print("For X and Y coordinates, the origin is the top left tile. eg:(2 4)")
+        print("Leave blank if not present")
+        def get_letter(coord):
+            x,y = int(coord[0]), int(coord[2])
+            return Letters[x+BOARD_SIDE_LEN*y]
+        dw = input("Coordinate of double word tile: ")
+        if dw:
+            get_letter(dw).does_double_word = True
+        tl = input("Coordinate of triple letter tile: ")
+        if tl:
+            get_letter(tl).multiplier = 2
+        dl = input("Coordinate of double letter tile: ")
+        if dl:
+            get_letter(dl).multiplier = 3
+        return Letters
     
     def read_in_bitmasks():
         letter_bitmasks = {}
