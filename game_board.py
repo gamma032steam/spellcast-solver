@@ -169,7 +169,22 @@ class GameBoard:
         config = r'--oem 3 --psm 10'
         res = pytesseract.image_to_string(text_image, config=config)
 
-        res = re.sub(r'\W+', '', res)
+        return re.sub(r'\W+', '', res)
+
+    def save_debug_image(self, name, img):
+        if not os.path.isdir('tmp'): os.mkdir('tmp')
+        cv2.imwrite(name, img)
+
+    def read_letter(self, image, bound, n):
+        '''Reads the letter in the middle of the tile'''
+        # crop image
+        cropped_image = image[bound.lo_y:bound.hi_y, bound.lo_x:bound.hi_x]
+        # remove colour
+        grey_image = self.get_grayscale(cropped_image)
+        self.save_debug_image(f'tmp/debug-letter-{n}.png', grey_image)
+
+        # read text
+        res = GameBoard.read_text_w_tesseract(grey_image, n)
         if not res: 
             print(f"WARN: Failed to detect letter {n}: no characters detected. Skipping.") 
             return None
@@ -189,21 +204,8 @@ class GameBoard:
 
         return letter
 
-    def save_debug_image(self, name, img):
-        if not os.path.isdir('tmp'): os.mkdir('tmp')
-        cv2.imwrite(name, img)
-
-    def read_tile(self, image, bound, n):
-        '''Takes coordinate bounds and identifies the letter and the multiplier if any.'''
-        # crop image
-        cropped_image = image[bound.lo_y:bound.hi_y, bound.lo_x:bound.hi_x]
-        # remove colour
-        grey_image = self.get_grayscale(cropped_image)
-        self.save_debug_image(f'tmp/debug-letter-{n}.png', grey_image)
-
-        # read text
-        letter = GameBoard.read_text_w_tesseract(grey_image, n)
-        
+    def read_multiplier(self, image, bound, n):
+        '''Tries to OCR the multiplier in the top-left of the tile'''
         # crop image with modified bounds, original bounds identified the letter.
         # modified bounds will identify the multiplier
         y_len = bound.hi_y - bound.lo_y
@@ -214,9 +216,7 @@ class GameBoard:
         self.save_debug_image(f'tmp/debug-letter-{n}.png', grey_image)
         # read text
         multiplier_text = GameBoard.read_text_w_tesseract(grey_image, n)
-        multiplier_text = None
 
-        position = (n%BOARD_SIDE_LEN, n//BOARD_SIDE_LEN)
         does_double_word = False
         multiplier = 1
         if multiplier_text == "dw":
@@ -229,6 +229,13 @@ class GameBoard:
             pass
         else:
             print(f"WARN: Detected invalid multiplier text: {multiplier_text}.") 
+        return multiplier, does_double_word
+
+    def read_tile(self, image, bound, n):
+        '''Takes coordinate bounds and identifies the letter and the multiplier if any.'''
+        position = (n%BOARD_SIDE_LEN, n//BOARD_SIDE_LEN)
+        letter = self.read_letter(image, bound, n)
+        multiplier, does_double_word = self.read_multiplier(image, bound, n)
         return Letter(letter, 0, multiplier, does_double_word, position, False)
 
     def find_tile_bounds(self, image):
