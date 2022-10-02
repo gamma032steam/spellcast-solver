@@ -1,3 +1,7 @@
+# Core OCR component. There's some experimentation with two different
+# algorithms, pytesseract and easyocr in here. You can also read the letters
+# in manually.
+
 import math
 import os
 import pytesseract
@@ -8,7 +12,6 @@ from multiprocessing import Pool
 from itertools import repeat
 from collections import namedtuple
 import numpy as np
-import easyocr
 
 Bound = namedtuple("Bound", "lo_y hi_y lo_x hi_x")
 
@@ -28,19 +31,20 @@ class GameBoard:
         '''Creates a game board based on a provided image'''
         self.image = cv2.imread(image_path)
         self.tile_bounds = self.find_tile_bounds(self.image)
-        # self.reader = easyocr.Reader(['en'])
         letter_bounds = self.find_letter_bounds(self.tile_bounds)
         self.grid = [[]]
         self.letter_bitmasks, self.multiplier_bitmasks = GameBoard.read_in_bitmasks()
         assert(len(letter_bounds) == 25)
-        #letters = []
-        #with Pool(processes=NUM_PROCS) as pool:
-        #    letters = pool.starmap(self.read_letter, zip(repeat(self.image), letter_bounds, range(len(letter_bounds))))
-        letters = GameBoard.read_letters_manually()
+        
+        # ocr everything in parallel
+        letters = []
+        with Pool(processes=NUM_PROCS) as pool:
+           letters = pool.starmap(self.read_tile, zip(repeat(self.image), letter_bounds, range(len(letter_bounds))))
         for i, letter in enumerate(letters):
             if len(self.grid[-1]) == 5: self.grid.append([])
             self.grid[-1].append(letter)
         self.graph = GameBoard.construct_graph_from_grid(self.grid)
+        
         self.num_swaps = int(input("How many swaps can you perform: "))
     
     def get_position(i):
@@ -185,31 +189,33 @@ class GameBoard:
 
         return letter
 
+    def save_debug_image(self, name, img):
+        if not os.path.isdir('tmp'): os.mkdir('tmp')
+        cv2.imwrite(name, img)
+
     def read_tile(self, image, bound, n):
-        '''Takes coordinate bounds and identifies the letter and the multipler if any.'''
+        '''Takes coordinate bounds and identifies the letter and the multiplier if any.'''
         # crop image
         cropped_image = image[bound.lo_y:bound.hi_y, bound.lo_x:bound.hi_x]
         # remove colour
         grey_image = self.get_grayscale(cropped_image)
-        # save image for debugging
-        if not os.path.isdir('tmp'): os.mkdir('tmp')
-        cv2.imwrite(f'tmp/debug-letter-{n}.png', grey_image)
+        self.save_debug_image(f'tmp/debug-letter-{n}.png', grey_image)
+
         # read text
         letter = GameBoard.read_text_w_tesseract(grey_image, n)
         
         # crop image with modified bounds, original bounds identified the letter.
-        # modified bounds will identify the multipler
+        # modified bounds will identify the multiplier
         y_len = bound.hi_y - bound.lo_y
         x_len = bound.hi_x - bound.lo_x
         cropped_image = image[bound.lo_y - int(y_len*0.35):bound.hi_y- int(y_len*1.05), bound.lo_x- int(x_len*0.8):bound.hi_x- int(x_len*1.1)]
         # remove colour
         grey_image = self.get_grayscale(cropped_image)
-        # save image for debugging
-        if not os.path.isdir('tmp'): os.mkdir('tmp')
-        cv2.imwrite(f'tmp/debug-multiplier-{n}.png', grey_image)
+        self.save_debug_image(f'tmp/debug-letter-{n}.png', grey_image)
         # read text
         multiplier_text = GameBoard.read_text_w_tesseract(grey_image, n)
-        
+        multiplier_text = None
+
         position = (n%BOARD_SIDE_LEN, n//BOARD_SIDE_LEN)
         does_double_word = False
         multiplier = 1

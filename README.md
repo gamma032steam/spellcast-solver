@@ -1,6 +1,6 @@
 # SpellCast Solver
 
-Identifies best moves for the SpellCast Discord game. Reads the game state via OCR.
+Identifies best moves for the [SpellCast Discord game](https://beebom.com/how-play-discord-channel-games/). Reads the game state via OCR.
 
 ## The game
 The goal is to connect letters to make words. You can connect letters horizontally, vertically and diagonally. Each letter used awards points.
