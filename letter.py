@@ -1,3 +1,5 @@
+BOARD_SIDE_LEN = 5
+
 class Letter:
     '''Represents a letter on the game board'''
     char_to_points = {'a':1,'b':4,'c':5,'d':3,'e':1,'f':5,'g':3,'h':4,'i':1,'j':7,'k':6,'l':3,'m':4,'n':2,'o':1,'p':4,'q':8,'r':2,'s':2,'t':2,'u':4,'v':5,'w':5,'x':7,'y':4,'z':8}
@@ -17,6 +19,8 @@ class Letter:
         self.has_diamond = has_diamond
         self.does_double_word = does_double_word
         self.position = position
+        col, row = position
+        self.tile_number = row * BOARD_SIDE_LEN + col
         # We use this bool to track whether the letter is used up when searching
         # for the best word on the board.
         self.used_up = False
