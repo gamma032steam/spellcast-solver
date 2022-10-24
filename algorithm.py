@@ -11,6 +11,7 @@ def find_best_word(trie: dict, board) -> tuple:
     trie = trie[""]
     scored_words = []
     for letter in board.graph:
+        if not letter.char: continue
         scored_words += find_best_word_r(trie[letter.char], letter, [letter], board)
     unique_scored_words = list({i.word+str(i.score): i for i in scored_words}.values())
     return sorted(list(set(unique_scored_words)), key=lambda x: x[1])[-TOP_N:]
@@ -20,7 +21,9 @@ def find_best_word(trie: dict, board) -> tuple:
 def find_best_word_r(trie: dict, curr_letter: Letter, used_letters: list, board) -> list:
     curr_letter.used_up = True
     scored_words = []
-    for i, letter in enumerate(board.graph[curr_letter]):
+    for letter in board.graph[curr_letter]:
+        if not letter.char: continue # letters that were not detected
+
         if not letter.used_up:
             if board.num_swaps>0:
                 board.num_swaps -= 1
@@ -74,5 +77,5 @@ if __name__ == "__main__":
     best_path = best_scored_words[-1][2]
     print(draw_solution_on_terminal(board, best_path))
 
-    #from painter import draw_solution
-    #draw_solution(board, best_path)
+    from painter import draw_solution
+    draw_solution(board, best_path)

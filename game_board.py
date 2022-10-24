@@ -16,6 +16,8 @@ import numpy as np
 Bound = namedtuple("Bound", "lo_y hi_y lo_x hi_x")
 
 BOARD_SIDE_LEN = 5
+
+# how much of the tile to cut to be left with just the letter
 LETTER_HOZ_TRIM_PERCENT = 0.22
 LETTER_VERT_TRIM_PERCENT = 0.10
 
@@ -111,7 +113,7 @@ class GameBoard:
         for row in self.grid:
             str += "|"
             for letter in row:
-                str += '*' if letter is None else letter.char.upper()
+                str += '*' if letter.char is None else letter.char.upper()
                 str += '|'
             str += '\n' + edge
         return str
@@ -181,12 +183,13 @@ class GameBoard:
         cropped_image = image[bound.lo_y:bound.hi_y, bound.lo_x:bound.hi_x]
         # remove colour
         grey_image = self.get_grayscale(cropped_image)
-        self.save_debug_image(f'tmp/debug-letter-{n}.png', grey_image)
+        debug_filename = f'tmp/debug-letter-{n}.png'  
+        self.save_debug_image(debug_filename, grey_image)
 
         # read text
         res = GameBoard.read_text_w_tesseract(grey_image, n)
         if not res: 
-            print(f"WARN: Failed to detect letter {n}: no characters detected. Skipping.") 
+            print(f"WARN: Failed to detect letter {n}: no characters detected. Saved a debug image to to {debug_filename}. Skipping.") 
             return None
 
         letter = res[0].lower()
