@@ -48,6 +48,8 @@ class GameBoard:
         self.graph = GameBoard.construct_graph_from_grid(self.grid)
         
         self.num_swaps = int(input("How many swaps can you perform: "))
+        if self.num_swaps > 3:
+            print("WARN: It should not be possible to have more than three swaps. Continuing, but this will be slow.")
     
     def get_position(i):
         return (i%BOARD_SIDE_LEN, i//BOARD_SIDE_LEN)
