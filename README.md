@@ -19,4 +19,5 @@ Input image             |  Output image
  `pip install -r requirements.txt`
 
 ### Run:
-TBD
+1. Copy a screenshot of your game board to `sample_data/game.png`.
+2. Run `python3 algorithm.py`.
