@@ -224,7 +224,7 @@ class GameBoard:
 
         does_double_word = False
         multiplier = 1
-        if multiplier_text == "2x":
+        if multiplier_text in ["2x", "2k"]:
             does_double_word = True
         elif multiplier_text == "dl":
             multiplier = 2
