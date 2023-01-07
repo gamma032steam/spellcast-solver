@@ -18,7 +18,7 @@ Bound = namedtuple("Bound", "lo_y hi_y lo_x hi_x")
 BOARD_SIDE_LEN = 5
 
 # how much of the tile to cut to be left with just the letter
-LETTER_HOZ_TRIM_PERCENT = 0.22
+LETTER_HOZ_TRIM_PERCENT = 0.23
 LETTER_VERT_TRIM_PERCENT = 0.10
 
 # mapping to correct incorrect detections
@@ -35,14 +35,14 @@ class GameBoard:
         self.tile_bounds = self.find_tile_bounds(self.image)
         letter_bounds = self.find_letter_bounds(self.tile_bounds)
         self.grid = [[]]
-        self.letter_bitmasks, self.multiplier_bitmasks = GameBoard.read_in_bitmasks()
+        #self.letter_bitmasks, self.multiplier_bitmasks = GameBoard.read_in_bitmasks()
         assert(len(letter_bounds) == 25)
         
         # ocr everything in parallel
         letters = []
         with Pool(processes=NUM_PROCS) as pool:
            letters = pool.starmap(self.read_tile, zip(repeat(self.image), letter_bounds, range(len(letter_bounds))))
-        for i, letter in enumerate(letters):
+        for _, letter in enumerate(letters):
             if len(self.grid[-1]) == 5: self.grid.append([])
             self.grid[-1].append(letter)
         self.graph = GameBoard.construct_graph_from_grid(self.grid)
@@ -218,13 +218,13 @@ class GameBoard:
         cropped_image = image[bound.lo_y - int(y_len*0.35):bound.hi_y- int(y_len*1.05), bound.lo_x- int(x_len*0.8):bound.hi_x- int(x_len*1.1)]
         # remove colour
         grey_image = self.get_grayscale(cropped_image)
-        self.save_debug_image(f'tmp/debug-letter-{n}.png', grey_image)
+        self.save_debug_image(f'tmp/debug-multiplier-{n}.png', grey_image)
         # read text
-        multiplier_text = GameBoard.read_text_w_tesseract(grey_image, n)
+        multiplier_text = GameBoard.read_text_w_tesseract(grey_image, n).lower()
 
         does_double_word = False
         multiplier = 1
-        if multiplier_text == "dw":
+        if multiplier_text == "2x":
             does_double_word = True
         elif multiplier_text == "dl":
             multiplier = 2
