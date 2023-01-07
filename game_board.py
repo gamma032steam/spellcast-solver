@@ -176,7 +176,7 @@ class GameBoard:
         return re.sub(r'\W+', '', res)
 
     def save_debug_image(self, name, img):
-        if not os.path.isdir('tmp'): os.mkdir('tmp')
+        if not os.path.isdir('tmp'): os.mkdir('tmp', exist_ok=True)
         cv2.imwrite(name, img)
 
     def read_letter(self, image, bound, n):
