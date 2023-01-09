@@ -176,7 +176,10 @@ class GameBoard:
         return re.sub(r'\W+', '', res)
 
     def save_debug_image(self, name, img):
-        if not os.path.isdir('tmp'): os.mkdir('tmp', exist_ok=True)
+        try:
+            if not os.path.isdir('tmp'): os.mkdir('tmp')
+        except:
+            return
         cv2.imwrite(name, img)
 
     def read_letter(self, image, bound, n):
@@ -191,7 +194,7 @@ class GameBoard:
         # read text
         res = GameBoard.read_text_w_tesseract(grey_image, n)
         if not res: 
-            print(f"WARN: Failed to detect letter {n}: no characters detected. Saved a debug image to to {debug_filename}. Skipping.") 
+            print(f"WARN: Failed to detect letter {n}: no characters detected. Saved a debug image to {debug_filename}. Skipping.") 
             return None
 
         letter = res[0].lower()
@@ -240,7 +243,8 @@ class GameBoard:
         '''Takes coordinate bounds and identifies the letter and the multiplier if any.'''
         position = (n%BOARD_SIDE_LEN, n//BOARD_SIDE_LEN)
         letter = self.read_letter(image, bound, n)
-        multiplier, does_double_word = self.read_multiplier(image, bound, n)
+        #multiplier, does_double_word = self.read_multiplier(image, bound, n)
+        multiplier, does_double_word = 1, False
         return Letter(letter, 0, multiplier, does_double_word, position, False)
 
     def find_tile_bounds(self, image):
